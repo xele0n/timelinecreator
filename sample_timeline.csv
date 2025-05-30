@@ -1,0 +1,10 @@
+date,event,end_date,color
+2024-01-15,Project Planning,,#28a745
+2024-02-01,Research Phase,2024-02-28,#007bff
+2024-03-01,Design Phase,2024-03-31,#6f42c1
+2024-04-01,Development Sprint 1,2024-04-15,#fd7e14
+2024-04-16,Development Sprint 2,2024-04-30,#fd7e14
+2024-05-01,Testing Phase,2024-05-15,#ffc107
+2024-05-16,Bug Fixes,2024-05-25,#dc3545
+2024-05-26,Final Review,,#17a2b8
+2024-06-01,Project Launch,,#28a745 

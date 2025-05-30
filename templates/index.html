@@ -1,0 +1,881 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Timeline Creator</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .content {
+            padding: 40px;
+        }
+
+        .input-section {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 30px;
+            margin-bottom: 30px;
+        }
+
+        .section-tabs {
+            display: flex;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #e9ecef;
+        }
+
+        .tab {
+            padding: 12px 24px;
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s ease;
+            font-weight: 600;
+            color: #6c757d;
+        }
+
+        .tab.active {
+            color: #667eea;
+            border-bottom-color: #667eea;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .form-row {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+            align-items: end;
+        }
+
+        .form-group {
+            flex: 1;
+        }
+
+        .form-group.small {
+            flex: 0.3;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s ease;
+        }
+
+        .form-group input[type="color"] {
+            height: 50px;
+            padding: 4px;
+            cursor: pointer;
+        }
+
+        .form-group input:focus, .form-group select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .csv-upload {
+            border: 2px dashed #667eea;
+            border-radius: 10px;
+            padding: 30px;
+            text-align: center;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            background: #f8f9ff;
+        }
+
+        .csv-upload:hover {
+            border-color: #5a67d8;
+            background: #f0f2ff;
+        }
+
+        .csv-upload.dragover {
+            border-color: #4c51bf;
+            background: #e6f3ff;
+        }
+
+        .csv-upload input[type="file"] {
+            display: none;
+        }
+
+        .csv-upload-icon {
+            font-size: 3em;
+            color: #667eea;
+            margin-bottom: 15px;
+        }
+
+        .csv-format-info {
+            background: #e3f2fd;
+            border-left: 4px solid #2196f3;
+            padding: 15px;
+            margin-top: 20px;
+            border-radius: 5px;
+        }
+
+        .csv-format-info h4 {
+            color: #1976d2;
+            margin-bottom: 10px;
+        }
+
+        .csv-format-info code {
+            background: #fff;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .btn-add {
+            background: #28a745;
+            color: white;
+        }
+
+        .btn-add:hover {
+            background: #218838;
+            transform: translateY(-2px);
+        }
+
+        .btn-generate {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            width: 100%;
+            padding: 15px;
+            font-size: 18px;
+            margin-top: 20px;
+        }
+
+        .btn-generate:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn-generate:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .btn-upload {
+            background: #17a2b8;
+            color: white;
+            margin-top: 15px;
+        }
+
+        .btn-upload:hover {
+            background: #138496;
+            transform: translateY(-2px);
+        }
+
+        .btn-clear {
+            background: #ffc107;
+            color: #212529;
+            margin-left: 10px;
+        }
+
+        .btn-clear:hover {
+            background: #e0a800;
+        }
+
+        .events-list {
+            margin-top: 30px;
+        }
+
+        .events-list h3 {
+            color: #2c3e50;
+            margin-bottom: 15px;
+            font-size: 1.5em;
+        }
+
+        .event-item {
+            background: white;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.3s ease;
+        }
+
+        .event-item:hover {
+            border-color: #667eea;
+            transform: translateX(5px);
+        }
+
+        .event-item.duration {
+            border-left: 4px solid #28a745;
+        }
+
+        .event-info {
+            flex: 1;
+            display: flex;
+            align-items: center;
+        }
+
+        .event-color-indicator {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            margin-right: 15px;
+            border: 2px solid #fff;
+            box-shadow: 0 0 0 1px #ddd;
+        }
+
+        .event-details {
+            flex: 1;
+        }
+
+        .event-date {
+            font-weight: 600;
+            color: #667eea;
+            margin-bottom: 5px;
+        }
+
+        .event-date.duration {
+            color: #28a745;
+        }
+
+        .event-text {
+            color: #2c3e50;
+        }
+
+        .event-actions {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .btn-edit {
+            background: #ffc107;
+            color: #212529;
+            padding: 6px 12px;
+            font-size: 12px;
+        }
+
+        .btn-edit:hover {
+            background: #e0a800;
+        }
+
+        .btn-remove {
+            background: #dc3545;
+            color: white;
+            padding: 8px 16px;
+            font-size: 14px;
+        }
+
+        .btn-remove:hover {
+            background: #c82333;
+        }
+
+        .result-section {
+            margin-top: 40px;
+            text-align: center;
+        }
+
+        .timeline-image {
+            max-width: 100%;
+            border-radius: 10px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            margin-top: 20px;
+        }
+
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+            border: 1px solid #f5c6cb;
+        }
+
+        .success {
+            background: #d4edda;
+            color: #155724;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+            border: 1px solid #c3e6cb;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #667eea;
+            font-size: 18px;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #6c757d;
+            font-style: italic;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+        }
+
+        .modal-content {
+            background-color: white;
+            margin: 10% auto;
+            padding: 30px;
+            border-radius: 10px;
+            width: 80%;
+            max-width: 500px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .close {
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+            color: #aaa;
+        }
+
+        .close:hover {
+            color: #000;
+        }
+
+        @media (max-width: 768px) {
+            .form-row {
+                flex-direction: column;
+            }
+            
+            .header h1 {
+                font-size: 2em;
+            }
+            
+            .content {
+                padding: 20px;
+            }
+
+            .container {
+                margin: 10px;
+            }
+
+            .section-tabs {
+                flex-direction: column;
+            }
+
+            .tab {
+                text-align: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📅 Timeline Creator</h1>
+            <p>Create beautiful visual timelines from your events with colors and durations</p>
+        </div>
+        
+        <div class="content">
+            <div class="input-section">
+                <div class="section-tabs">
+                    <div class="tab active" onclick="switchTab('manual')">✏️ Manual Entry</div>
+                    <div class="tab" onclick="switchTab('csv')">📁 CSV Import</div>
+                </div>
+
+                <!-- Manual Entry Tab -->
+                <div id="manual-tab" class="tab-content active">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="event-date">Start Date</label>
+                            <input type="date" id="event-date" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="event-end-date">End Date (Optional)</label>
+                            <input type="date" id="event-end-date">
+                        </div>
+                        <div class="form-group">
+                            <label for="event-text">Event Description</label>
+                            <input type="text" id="event-text" placeholder="Enter event description..." required>
+                        </div>
+                        <div class="form-group small">
+                            <label for="event-color">Color</label>
+                            <input type="color" id="event-color" value="#dc3545">
+                        </div>
+                        <button class="btn btn-add" onclick="addEvent()">Add Event</button>
+                    </div>
+                </div>
+
+                <!-- CSV Import Tab -->
+                <div id="csv-tab" class="tab-content">
+                    <div class="csv-upload" onclick="document.getElementById('csv-file').click()">
+                        <input type="file" id="csv-file" accept=".csv" onchange="handleFileSelect(this)">
+                        <div class="csv-upload-icon">📄</div>
+                        <h3>Upload CSV File</h3>
+                        <p>Click here or drag and drop your CSV file</p>
+                        <button type="button" class="btn btn-upload">Choose File</button>
+                    </div>
+                    
+                    <div class="csv-format-info">
+                        <h4>📋 CSV Format</h4>
+                        <p><strong>Required columns:</strong> <code>date</code>, <code>event</code></p>
+                        <p><strong>Optional columns:</strong> <code>end_date</code>, <code>color</code></p>
+                        <p><strong>Example:</strong></p>
+                        <code>date,event,end_date,color<br>
+                        2024-01-15,Project Start,,#28a745<br>
+                        2024-02-01,Development Phase,2024-04-30,#007bff<br>
+                        2024-05-01,Project Launch,,#dc3545</code>
+                    </div>
+                </div>
+                
+                <div class="events-list">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                        <h3>Events (<span id="event-count">0</span>)</h3>
+                        <button class="btn btn-clear" onclick="clearAllEvents()" style="display: none;" id="clear-btn">Clear All</button>
+                    </div>
+                    <div id="events-container">
+                        <div class="empty-state">
+                            No events added yet. Add your first event above or import from CSV!
+                        </div>
+                    </div>
+                </div>
+                
+                <button class="btn btn-generate" onclick="generateTimeline()" disabled>
+                    Generate Timeline
+                </button>
+            </div>
+            
+            <div class="result-section" id="result-section" style="display: none;">
+                <h3>Your Timeline</h3>
+                <div id="timeline-container"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Event Modal -->
+    <div id="edit-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Edit Event</h3>
+                <span class="close" onclick="closeEditModal()">&times;</span>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="edit-event-date">Start Date</label>
+                    <input type="date" id="edit-event-date" required>
+                </div>
+                <div class="form-group">
+                    <label for="edit-event-end-date">End Date (Optional)</label>
+                    <input type="date" id="edit-event-end-date">
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="edit-event-text">Event Description</label>
+                    <input type="text" id="edit-event-text" required>
+                </div>
+                <div class="form-group small">
+                    <label for="edit-event-color">Color</label>
+                    <input type="color" id="edit-event-color">
+                </div>
+            </div>
+            <div style="margin-top: 20px; text-align: right;">
+                <button class="btn btn-add" onclick="saveEditedEvent()">Save Changes</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let events = [];
+        let editingIndex = -1;
+
+        function switchTab(tabName) {
+            // Remove active class from all tabs
+            document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            
+            // Add active class to selected tab
+            document.querySelector(`.tab:nth-child(${tabName === 'manual' ? '1' : '2'})`).classList.add('active');
+            document.getElementById(`${tabName}-tab`).classList.add('active');
+        }
+
+        function addEvent() {
+            const dateInput = document.getElementById('event-date');
+            const endDateInput = document.getElementById('event-end-date');
+            const textInput = document.getElementById('event-text');
+            const colorInput = document.getElementById('event-color');
+            
+            const date = dateInput.value;
+            const endDate = endDateInput.value;
+            const text = textInput.value.trim();
+            const color = colorInput.value;
+            
+            if (!date || !text) {
+                alert('Please fill in both start date and event description.');
+                return;
+            }
+
+            if (endDate && new Date(endDate) <= new Date(date)) {
+                alert('End date must be after start date.');
+                return;
+            }
+            
+            const event = { date, event: text, color };
+            if (endDate) {
+                event.end_date = endDate;
+            }
+            
+            events.push(event);
+            
+            // Clear inputs
+            dateInput.value = '';
+            endDateInput.value = '';
+            textInput.value = '';
+            colorInput.value = '#dc3545';
+            
+            updateEventsList();
+            updateGenerateButton();
+        }
+
+        function removeEvent(index) {
+            events.splice(index, 1);
+            updateEventsList();
+            updateGenerateButton();
+        }
+
+        function editEvent(index) {
+            editingIndex = index;
+            const event = events[index];
+            
+            document.getElementById('edit-event-date').value = event.date;
+            document.getElementById('edit-event-end-date').value = event.end_date || '';
+            document.getElementById('edit-event-text').value = event.event;
+            document.getElementById('edit-event-color').value = event.color;
+            
+            document.getElementById('edit-modal').style.display = 'block';
+        }
+
+        function closeEditModal() {
+            document.getElementById('edit-modal').style.display = 'none';
+            editingIndex = -1;
+        }
+
+        function saveEditedEvent() {
+            if (editingIndex === -1) return;
+            
+            const date = document.getElementById('edit-event-date').value;
+            const endDate = document.getElementById('edit-event-end-date').value;
+            const text = document.getElementById('edit-event-text').value.trim();
+            const color = document.getElementById('edit-event-color').value;
+            
+            if (!date || !text) {
+                alert('Please fill in both start date and event description.');
+                return;
+            }
+
+            if (endDate && new Date(endDate) <= new Date(date)) {
+                alert('End date must be after start date.');
+                return;
+            }
+            
+            const event = { date, event: text, color };
+            if (endDate) {
+                event.end_date = endDate;
+            }
+            
+            events[editingIndex] = event;
+            updateEventsList();
+            updateGenerateButton();
+            closeEditModal();
+        }
+
+        function clearAllEvents() {
+            if (confirm('Are you sure you want to clear all events?')) {
+                events = [];
+                updateEventsList();
+                updateGenerateButton();
+            }
+        }
+
+        function updateEventsList() {
+            const container = document.getElementById('events-container');
+            const countElement = document.getElementById('event-count');
+            const clearBtn = document.getElementById('clear-btn');
+            
+            countElement.textContent = events.length;
+            clearBtn.style.display = events.length > 0 ? 'block' : 'none';
+            
+            if (events.length === 0) {
+                container.innerHTML = '<div class="empty-state">No events added yet. Add your first event above or import from CSV!</div>';
+                return;
+            }
+            
+            // Sort events by date for display
+            const sortedEvents = [...events].sort((a, b) => new Date(a.date) - new Date(b.date));
+            
+            container.innerHTML = sortedEvents.map((event, sortedIndex) => {
+                const originalIndex = events.findIndex(e => 
+                    e.date === event.date && 
+                    e.event === event.event && 
+                    e.color === event.color &&
+                    e.end_date === event.end_date
+                );
+                
+                const isDuration = event.end_date;
+                const dateText = isDuration 
+                    ? `${formatDate(event.date)} → ${formatDate(event.end_date)}`
+                    : formatDate(event.date);
+                
+                return `
+                    <div class="event-item ${isDuration ? 'duration' : ''}">
+                        <div class="event-info">
+                            <div class="event-color-indicator" style="background-color: ${event.color}"></div>
+                            <div class="event-details">
+                                <div class="event-date ${isDuration ? 'duration' : ''}">${dateText}</div>
+                                <div class="event-text">${event.event}</div>
+                            </div>
+                        </div>
+                        <div class="event-actions">
+                            <button class="btn btn-edit" onclick="editEvent(${originalIndex})">Edit</button>
+                            <button class="btn btn-remove" onclick="removeEvent(${originalIndex})">Remove</button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function formatDate(dateString) {
+            const date = new Date(dateString);
+            return date.toLocaleDateString('en-US', { 
+                year: 'numeric', 
+                month: 'long', 
+                day: 'numeric' 
+            });
+        }
+
+        function updateGenerateButton() {
+            const button = document.querySelector('.btn-generate');
+            button.disabled = events.length === 0;
+        }
+
+        function handleFileSelect(input) {
+            const file = input.files[0];
+            if (file) {
+                uploadCSV(file);
+            }
+        }
+
+        async function uploadCSV(file) {
+            const formData = new FormData();
+            formData.append('file', file);
+            
+            try {
+                showMessage('Uploading CSV file...', 'info');
+                
+                const response = await fetch('/upload_csv', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    events = [...events, ...data.events];
+                    updateEventsList();
+                    updateGenerateButton();
+                    showMessage(data.message, 'success');
+                    switchTab('manual'); // Switch back to manual tab
+                } else {
+                    showMessage(`Error: ${data.error}`, 'error');
+                }
+            } catch (error) {
+                showMessage('Error uploading CSV file. Please try again.', 'error');
+            }
+            
+            // Clear file input
+            input.value = '';
+        }
+
+        function showMessage(message, type) {
+            const container = document.getElementById('timeline-container');
+            const className = type === 'success' ? 'success' : (type === 'error' ? 'error' : 'loading');
+            container.innerHTML = `<div class="${className}">${message}</div>`;
+            
+            if (type !== 'info') {
+                setTimeout(() => {
+                    if (container.innerHTML.includes(message)) {
+                        container.innerHTML = '';
+                    }
+                }, 5000);
+            }
+        }
+
+        async function generateTimeline() {
+            if (events.length === 0) return;
+            
+            const button = document.querySelector('.btn-generate');
+            const resultSection = document.getElementById('result-section');
+            const timelineContainer = document.getElementById('timeline-container');
+            
+            // Show loading state
+            button.disabled = true;
+            button.textContent = 'Generating Timeline...';
+            resultSection.style.display = 'block';
+            timelineContainer.innerHTML = '<div class="loading">🔄 Creating your timeline...</div>';
+            
+            try {
+                const response = await fetch('/generate_timeline', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ events: events })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    timelineContainer.innerHTML = `
+                        <img src="${data.image}" alt="Generated Timeline" class="timeline-image">
+                        <p style="margin-top: 15px; color: #28a745; font-weight: 600;">
+                            ✅ Timeline generated successfully!
+                        </p>
+                    `;
+                } else {
+                    timelineContainer.innerHTML = `
+                        <div class="error">
+                            ❌ Error: ${data.error}
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                timelineContainer.innerHTML = `
+                    <div class="error">
+                        ❌ Error: Failed to generate timeline. Please try again.
+                    </div>
+                `;
+            } finally {
+                button.disabled = events.length === 0;
+                button.textContent = 'Generate Timeline';
+            }
+        }
+
+        // File drag and drop functionality
+        const csvUpload = document.querySelector('.csv-upload');
+        
+        csvUpload.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            csvUpload.classList.add('dragover');
+        });
+        
+        csvUpload.addEventListener('dragleave', () => {
+            csvUpload.classList.remove('dragover');
+        });
+        
+        csvUpload.addEventListener('drop', (e) => {
+            e.preventDefault();
+            csvUpload.classList.remove('dragover');
+            
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                const file = files[0];
+                if (file.name.toLowerCase().endsWith('.csv')) {
+                    uploadCSV(file);
+                } else {
+                    alert('Please upload a CSV file.');
+                }
+            }
+        });
+
+        // Modal functionality
+        window.onclick = function(event) {
+            const modal = document.getElementById('edit-modal');
+            if (event.target === modal) {
+                closeEditModal();
+            }
+        }
+
+        // Allow pressing Enter to add events
+        document.getElementById('event-text').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                addEvent();
+            }
+        });
+    </script>
+</body>
+</html> 
