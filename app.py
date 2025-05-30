@@ -21,6 +21,19 @@ def draw_ultra_smooth_curve(draw, start_point, end_point, color, width=2, curve_
     x1, y1 = float(start_point[0]), float(start_point[1])
     x2, y2 = float(end_point[0]), float(end_point[1])
     
+    # Convert color to RGB tuple if it's a string
+    if isinstance(color, str):
+        if color.lower() == 'gray' or color.lower() == 'grey':
+            color = (128, 128, 128)
+        elif color.lower() == 'black':
+            color = (0, 0, 0)
+        elif color.lower() == 'white':
+            color = (255, 255, 255)
+        elif color.startswith('#'):
+            color = hex_to_rgb(color)
+        else:
+            color = (128, 128, 128)  # Default to gray
+    
     # Calculate distance and direction
     dx = x2 - x1
     dy = y2 - y1
@@ -64,9 +77,13 @@ def draw_ultra_smooth_curve(draw, start_point, end_point, color, width=2, curve_
     
     # Add anti-aliasing effect by drawing slightly thinner lines around the main line
     if width > 2:
-        lighter_color = tuple(min(255, int(c + (255-c)*0.3)) for c in color)
-        for i in range(len(points) - 1):
-            draw.line([points[i], points[i + 1]], fill=lighter_color, width=max(1, int(width)-1))
+        try:
+            lighter_color = tuple(min(255, int(c + (255-c)*0.3)) for c in color)
+            for i in range(len(points) - 1):
+                draw.line([points[i], points[i + 1]], fill=lighter_color, width=max(1, int(width)-1))
+        except (TypeError, ValueError):
+            # Skip anti-aliasing if color processing fails
+            pass
 
 def draw_flowing_branch(draw, start_x, timeline_y, branch_y, end_x, color, width=4):
     """Draw a beautifully flowing branching line for duration events."""
@@ -239,9 +256,9 @@ def create_timeline_image(events):
     
     def date_to_x_position(date):
         if date_range.days == 0:
-            return width // 2
+            return float(width // 2)
         progress = (date - min_date).total_seconds() / date_range.total_seconds()
-        return timeline_start + progress * (timeline_end - timeline_start)
+        return float(timeline_start + progress * (timeline_end - timeline_start))
     
     # Track positions to avoid overlaps
     used_positions = []
@@ -313,19 +330,19 @@ def create_timeline_image(events):
             ], outline='black', width=inner_border_width)
             
             # Event text with elegant styling
-            event_text = event['event']
+            event_text = str(event['event'])  # Ensure string type
             try:
                 text_bbox = draw.textbbox((0, 0), event_text, font=font_medium)
-                text_width = text_bbox[2] - text_bbox[0]
+                text_width = float(text_bbox[2]) - float(text_bbox[0])
             except:
-                text_width = len(event_text) * 12 * scale_factor  # Fallback calculation
+                text_width = float(len(event_text) * 12 * scale_factor)  # Fallback calculation
             
-            text_x = (start_x + end_x) / 2 - text_width / 2
+            text_x = float(start_x + end_x) / 2.0 - text_width / 2.0
             
             if is_above:
-                text_y = branch_y - 35 * scale_factor
+                text_y = float(branch_y - 35 * scale_factor)
             else:
-                text_y = branch_y + 15 * scale_factor
+                text_y = float(branch_y + 15 * scale_factor)
             
             # Elegant text background with soft shadow
             padding = int(8 * scale_factor)
@@ -351,38 +368,38 @@ def create_timeline_image(events):
             
             try:
                 start_bbox = draw.textbbox((0, 0), start_date_text, font=font_small)
-                start_width = start_bbox[2] - start_bbox[0]
+                start_width = float(start_bbox[2]) - float(start_bbox[0])
                 end_bbox = draw.textbbox((0, 0), end_date_text, font=font_small)
-                end_width = end_bbox[2] - end_bbox[0]
+                end_width = float(end_bbox[2]) - float(end_bbox[0])
             except:
-                start_width = len(start_date_text) * 10 * scale_factor
-                end_width = len(end_date_text) * 10 * scale_factor
+                start_width = float(len(start_date_text) * 10 * scale_factor)
+                end_width = float(len(end_date_text) * 10 * scale_factor)
             
             # Calculate optimal positions
             start_date_y, start_above = get_optimal_date_position(
                 start_x, timeline_y, date_positions, start_width, True)
-            date_positions.append((start_x, start_date_y, start_width))
+            date_positions.append((float(start_x), float(start_date_y), float(start_width)))
             
             end_date_y, end_above = get_optimal_date_position(
                 end_x, timeline_y, date_positions, end_width, True)
-            date_positions.append((end_x, end_date_y, end_width))
+            date_positions.append((float(end_x), float(end_date_y), float(end_width)))
             
             # Draw elegant date labels
             date_padding = int(6 * scale_factor)
             
             # Start date
             draw.rectangle([
-                int(start_x - start_width // 2 - date_padding), int(start_date_y - 3 * scale_factor),
-                int(start_x + start_width // 2 + date_padding), int(start_date_y + 18 * scale_factor)
+                int(start_x - start_width / 2.0 - date_padding), int(start_date_y - 3 * scale_factor),
+                int(start_x + start_width / 2.0 + date_padding), int(start_date_y + 18 * scale_factor)
             ], fill='white', outline='gray', width=int(1 * scale_factor))
-            draw.text((int(start_x - start_width // 2), int(start_date_y)), start_date_text, fill='black', font=font_small)
+            draw.text((int(start_x - start_width / 2.0), int(start_date_y)), start_date_text, fill='black', font=font_small)
             
             # End date
             draw.rectangle([
-                int(end_x - end_width // 2 - date_padding), int(end_date_y - 3 * scale_factor),
-                int(end_x + end_width // 2 + date_padding), int(end_date_y + 18 * scale_factor)
+                int(end_x - end_width / 2.0 - date_padding), int(end_date_y - 3 * scale_factor),
+                int(end_x + end_width / 2.0 + date_padding), int(end_date_y + 18 * scale_factor)
             ], fill='white', outline='gray', width=int(1 * scale_factor))
-            draw.text((int(end_x - end_width // 2), int(end_date_y)), end_date_text, fill='black', font=font_small)
+            draw.text((int(end_x - end_width / 2.0), int(end_date_y)), end_date_text, fill='black', font=font_small)
             
         else:
             # Point event with flowing lines
@@ -424,37 +441,37 @@ def create_timeline_image(events):
             date_text = format_date_readable(event['start_date'])
             try:
                 date_bbox = draw.textbbox((0, 0), date_text, font=font_small)
-                date_width = date_bbox[2] - date_bbox[0]
+                date_width = float(date_bbox[2]) - float(date_bbox[0])
             except:
-                date_width = len(date_text) * 10 * scale_factor
+                date_width = float(len(date_text) * 10 * scale_factor)
             
             date_y, date_above = get_optimal_date_position(
                 start_x, timeline_y, date_positions, date_width, False)
-            date_positions.append((start_x, date_y, date_width))
+            date_positions.append((float(start_x), float(date_y), float(date_width)))
             
             # Draw elegant date with background
             date_padding = int(6 * scale_factor)
             draw.rectangle([
-                int(start_x - date_width // 2 - date_padding), int(date_y - 3 * scale_factor),
-                int(start_x + date_width // 2 + date_padding), int(date_y + 18 * scale_factor)
+                int(start_x - date_width / 2.0 - date_padding), int(date_y - 3 * scale_factor),
+                int(start_x + date_width / 2.0 + date_padding), int(date_y + 18 * scale_factor)
             ], fill='white', outline='gray', width=int(1 * scale_factor))
-            draw.text((int(start_x - date_width // 2), int(date_y)), date_text, fill='black', font=font_small)
+            draw.text((int(start_x - date_width / 2.0), int(date_y)), date_text, fill='black', font=font_small)
             
             # Event description with elegant styling
-            event_text = event['event']
+            event_text = str(event['event'])  # Ensure string type
             try:
                 event_bbox = draw.textbbox((0, 0), event_text, font=font_large)
-                event_width = event_bbox[2] - event_bbox[0]
+                event_width = float(event_bbox[2]) - float(event_bbox[0])
             except:
-                event_width = len(event_text) * 16 * scale_factor
+                event_width = float(len(event_text) * 16 * scale_factor)
             
             # Alternate text positioning
             if i % 2 == 0:
-                text_y = timeline_y - 130 * scale_factor
+                text_y = float(timeline_y - 130 * scale_factor)
                 connection_start = (start_x, timeline_y - circle_radius)
                 connection_end = (start_x, text_y + 30 * scale_factor)
             else:
-                text_y = timeline_y + 130 * scale_factor
+                text_y = float(timeline_y + 130 * scale_factor)
                 connection_start = (start_x, timeline_y + circle_radius)
                 connection_end = (start_x, text_y)
             
@@ -464,17 +481,17 @@ def create_timeline_image(events):
             
             # Drop shadow
             draw.rectangle([
-                int(start_x - event_width // 2 - text_padding + shadow_offset), int(text_y - 3 * scale_factor + shadow_offset),
-                int(start_x + event_width // 2 + text_padding + shadow_offset), int(text_y + 28 * scale_factor + shadow_offset)
+                int(start_x - event_width / 2.0 - text_padding + shadow_offset), int(text_y - 3 * scale_factor + shadow_offset),
+                int(start_x + event_width / 2.0 + text_padding + shadow_offset), int(text_y + 28 * scale_factor + shadow_offset)
             ], fill=(200, 200, 200))
             
             # Main background
             draw.rectangle([
-                int(start_x - event_width // 2 - text_padding), int(text_y - 3 * scale_factor),
-                int(start_x + event_width // 2 + text_padding), int(text_y + 28 * scale_factor)
+                int(start_x - event_width / 2.0 - text_padding), int(text_y - 3 * scale_factor),
+                int(start_x + event_width / 2.0 + text_padding), int(text_y + 28 * scale_factor)
             ], fill='white', outline=color, width=int(2 * scale_factor))
             
-            draw.text((int(start_x - event_width // 2), int(text_y)), event_text, fill=color, font=font_large)
+            draw.text((int(start_x - event_width / 2.0), int(text_y)), event_text, fill=color, font=font_large)
             
             # Draw elegant curved connection line
             draw_ultra_smooth_curve(draw, connection_start, connection_end, 'gray', 2 * scale_factor, 0.4)
@@ -486,15 +503,15 @@ def create_timeline_image(events):
     
     try:
         title_bbox = draw.textbbox((0, 0), title, font=font_title)
-        title_width = title_bbox[2] - title_bbox[0]
+        title_width = float(title_bbox[2]) - float(title_bbox[0])
     except:
-        title_width = len(title) * 20 * scale_factor
+        title_width = float(len(title) * 20 * scale_factor)
     
     # Title with elegant shadow
     shadow_offset = int(4 * scale_factor)
-    draw.text((int(width // 2 - title_width // 2 + shadow_offset), int(40 * scale_factor + shadow_offset)), 
+    draw.text((int(width / 2.0 - title_width / 2.0 + shadow_offset), int(40 * scale_factor + shadow_offset)), 
              title, fill=(180, 180, 180), font=font_title)
-    draw.text((int(width // 2 - title_width // 2), int(40 * scale_factor)), title, fill='black', font=font_title)
+    draw.text((int(width / 2.0 - title_width / 2.0), int(40 * scale_factor)), title, fill='black', font=font_title)
     
     # Scale down for final output while maintaining quality
     final_width = width // scale_factor
