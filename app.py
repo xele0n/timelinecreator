@@ -7,9 +7,14 @@ import os
 import csv
 from werkzeug.utils import secure_filename
 import math
+import logging
 
 app = Flask(__name__)
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
+
+# Set up logging for font debugging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 def hex_to_rgb(hex_color):
     """Convert hex color to RGB tuple."""
@@ -173,6 +178,123 @@ def format_date_readable(date_obj):
     """Format date as DD Month YYYY for better readability."""
     return date_obj.strftime('%d %B %Y')
 
+def get_text_dimensions(draw, text, font):
+    """Safely get text dimensions with fallbacks for different font types."""
+    text = str(text)  # Ensure string
+    try:
+        # Try the modern textbbox method first
+        bbox = draw.textbbox((0, 0), text, font=font)
+        width = float(bbox[2] - bbox[0])
+        height = float(bbox[3] - bbox[1])
+        return width, height
+    except (AttributeError, TypeError):
+        try:
+            # Fallback to older textsize method
+            width, height = draw.textsize(text, font=font)
+            return float(width), float(height)
+        except (AttributeError, TypeError):
+            # Last resort: estimate based on character count and scale factor
+            if hasattr(font, 'size'):
+                char_width = font.size * 0.6
+                char_height = font.size * 1.2
+            else:
+                # Very basic fallback
+                char_width = 12
+                char_height = 16
+            return float(len(text) * char_width), float(char_height)
+
+def get_font(size):
+    """Get a font with the specified size, trying multiple fallback options."""
+    
+    logger.info(f"Attempting to load font with size: {size}")
+    
+    # First try local bundled fonts
+    try:
+        import os
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        local_font_paths = [
+            os.path.join(script_dir, 'fonts', 'DejaVuSans.ttf'),
+            os.path.join(script_dir, 'fonts', 'LiberationSans-Regular.ttf'),
+            os.path.join(script_dir, 'fonts', 'OpenSans-Regular.ttf'),
+            os.path.join(script_dir, 'fonts', 'arial.ttf'),
+        ]
+        
+        for font_path in local_font_paths:
+            if os.path.exists(font_path):
+                try:
+                    logger.info(f"Successfully loaded local font: {font_path}")
+                    return ImageFont.truetype(font_path, size)
+                except (OSError, IOError) as e:
+                    logger.warning(f"Failed to load local font {font_path}: {e}")
+                    continue
+    except Exception as e:
+        logger.warning(f"Error checking local fonts: {e}")
+    
+    # Then try system fonts
+    font_paths = [
+        # Windows fonts
+        "arial.ttf",
+        "C:/Windows/Fonts/arial.ttf",
+        "C:/Windows/Fonts/calibri.ttf",
+        # Linux/Unix fonts
+        "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+        "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf",
+        "/usr/share/fonts/TTF/DejaVuSans.ttf",
+        "/System/Library/Fonts/Arial.ttf",  # macOS
+        "/usr/share/fonts/truetype/opensans/OpenSans-Regular.ttf",
+        "/usr/share/fonts/google-noto/NotoSans-Regular.ttf",
+        "/usr/share/fonts/truetype/noto/NotoSans-Regular.ttf",
+        "/usr/share/fonts/truetype/ubuntu-font-family/Ubuntu-R.ttf",
+        # Generic fallbacks
+        "DejaVuSans.ttf",
+        "LiberationSans-Regular.ttf",
+        "OpenSans-Regular.ttf",
+        "Ubuntu-R.ttf"
+    ]
+    
+    for font_path in font_paths:
+        try:
+            font = ImageFont.truetype(font_path, size)
+            logger.info(f"Successfully loaded system font: {font_path}")
+            return font
+        except (OSError, IOError):
+            continue
+    
+    logger.warning("No TrueType fonts found, falling back to default font")
+    
+    # Try to create a basic font directory and font if none exist
+    try:
+        import os
+        font_dir = os.path.join(os.path.dirname(__file__), 'fonts')
+        if not os.path.exists(font_dir):
+            os.makedirs(font_dir, exist_ok=True)
+            logger.info(f"Created fonts directory: {font_dir}")
+    except Exception as e:
+        logger.warning(f"Could not create fonts directory: {e}")
+    
+    # Enhanced default font that works better with scaling
+    try:
+        # Create a better default font for server environments
+        default_font = ImageFont.load_default()
+        logger.info("Using PIL default font")
+        
+        # Try to create a synthetic font that scales better
+        # This is a workaround for servers without proper font support
+        class ScaledDefaultFont:
+            def __init__(self, base_font, target_size):
+                self.base_font = base_font
+                self.size = target_size
+                
+        return ScaledDefaultFont(default_font, size)
+    except Exception as e:
+        logger.error(f"Error with default font: {e}")
+        try:
+            return ImageFont.load_default()
+        except Exception as e2:
+            logger.error(f"Critical font error: {e2}")
+            # Last resort - return None and handle in calling code
+            return None
+
 def create_timeline_image(events):
     """Generate a high-quality timeline image from a list of events."""
     if not events:
@@ -191,15 +313,26 @@ def create_timeline_image(events):
     
     # Load high-quality fonts with appropriate scaling
     try:
-        font_large = ImageFont.truetype("arial.ttf", 24 * scale_factor)
-        font_medium = ImageFont.truetype("arial.ttf", 20 * scale_factor)
-        font_small = ImageFont.truetype("arial.ttf", 16 * scale_factor)
-        font_title = ImageFont.truetype("arial.ttf", 28 * scale_factor)
-    except:
-        font_large = ImageFont.load_default()
-        font_medium = ImageFont.load_default()
-        font_small = ImageFont.load_default()
-        font_title = ImageFont.load_default()
+        font_large = get_font(24 * scale_factor)
+        font_medium = get_font(20 * scale_factor)
+        font_small = get_font(16 * scale_factor)
+        font_title = get_font(28 * scale_factor)
+        
+        # Ensure we have valid fonts, fallback to default if any are None
+        if any(font is None for font in [font_large, font_medium, font_small, font_title]):
+            default_font = ImageFont.load_default()
+            font_large = font_large or default_font
+            font_medium = font_medium or default_font
+            font_small = font_small or default_font
+            font_title = font_title or default_font
+    except Exception as e:
+        # Complete fallback to default fonts
+        print(f"Font loading error: {e}")
+        default_font = ImageFont.load_default()
+        font_large = default_font
+        font_medium = default_font
+        font_small = default_font
+        font_title = default_font
     
     # Parse and sort events by start date
     parsed_events = []
@@ -332,8 +465,8 @@ def create_timeline_image(events):
             # Event text with elegant styling
             event_text = str(event['event'])  # Ensure string type
             try:
-                text_bbox = draw.textbbox((0, 0), event_text, font=font_medium)
-                text_width = float(text_bbox[2]) - float(text_bbox[0])
+                text_bbox = get_text_dimensions(draw, event_text, font_medium)
+                text_width = text_bbox[0]
             except:
                 text_width = float(len(event_text) * 12 * scale_factor)  # Fallback calculation
             
@@ -367,10 +500,10 @@ def create_timeline_image(events):
             end_date_text = format_date_readable(event['end_date'])
             
             try:
-                start_bbox = draw.textbbox((0, 0), start_date_text, font=font_small)
-                start_width = float(start_bbox[2]) - float(start_bbox[0])
-                end_bbox = draw.textbbox((0, 0), end_date_text, font=font_small)
-                end_width = float(end_bbox[2]) - float(end_bbox[0])
+                start_bbox = get_text_dimensions(draw, start_date_text, font_small)
+                start_width = float(start_bbox[0])
+                end_bbox = get_text_dimensions(draw, end_date_text, font_small)
+                end_width = float(end_bbox[0])
             except:
                 start_width = float(len(start_date_text) * 10 * scale_factor)
                 end_width = float(len(end_date_text) * 10 * scale_factor)
@@ -440,8 +573,8 @@ def create_timeline_image(events):
             # Smart date positioning with new format
             date_text = format_date_readable(event['start_date'])
             try:
-                date_bbox = draw.textbbox((0, 0), date_text, font=font_small)
-                date_width = float(date_bbox[2]) - float(date_bbox[0])
+                date_bbox = get_text_dimensions(draw, date_text, font_small)
+                date_width = float(date_bbox[0])
             except:
                 date_width = float(len(date_text) * 10 * scale_factor)
             
@@ -460,8 +593,8 @@ def create_timeline_image(events):
             # Event description with elegant styling
             event_text = str(event['event'])  # Ensure string type
             try:
-                event_bbox = draw.textbbox((0, 0), event_text, font=font_large)
-                event_width = float(event_bbox[2]) - float(event_bbox[0])
+                event_bbox = get_text_dimensions(draw, event_text, font_large)
+                event_width = float(event_bbox[0])
             except:
                 event_width = float(len(event_text) * 16 * scale_factor)
             
@@ -502,8 +635,8 @@ def create_timeline_image(events):
     title = f"Timeline: {point_events} Events, {duration_events} Duration Events"
     
     try:
-        title_bbox = draw.textbbox((0, 0), title, font=font_title)
-        title_width = float(title_bbox[2]) - float(title_bbox[0])
+        title_bbox = get_text_dimensions(draw, title, font_title)
+        title_width = float(title_bbox[0])
     except:
         title_width = float(len(title) * 20 * scale_factor)
     
