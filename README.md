@@ -62,7 +62,13 @@ A beautiful web application that generates visual timeline images from user-prov
    python app.py
    ```
 
-4. **Open your browser** and navigate to:
+4. **Optional - Download additional fonts** (if not already included):
+   ```bash
+   python download_fonts.py
+   ```
+   This downloads high-quality DejaVu fonts for better text rendering on servers without system fonts.
+
+5. **Open your browser** and navigate to:
    ```
    http://localhost:5000
    ```
@@ -217,7 +223,11 @@ timeline-creator/
 ├── app.py                 # Main Flask application
 ├── templates/
 │   └── index.html        # Frontend interface
+├── fonts/                # Bundled fonts for server compatibility
+│   └── DejaVu*.ttf      # DejaVu font family files
 ├── requirements.txt      # Python dependencies
+├── download_fonts.py     # Script to download bundled fonts
+├── DEPLOYMENT.md        # Server deployment guide
 ├── sample_timeline.csv   # Example CSV file
 ├── README.md            # This file
 └── LICENSE              # MIT License
@@ -258,6 +268,45 @@ Use the included `sample_timeline.csv` file to test the CSV import feature:
 
 ## Troubleshooting
 
+### Font Support for Server Deployment
+
+The Timeline Creator includes robust font handling for server environments where system fonts may not be available:
+
+#### Bundled Fonts
+- **Included Fonts**: The application now includes DejaVu Sans fonts for reliable text rendering
+- **Automatic Fallback**: The app automatically uses bundled fonts if system fonts are unavailable
+- **Cross-Platform**: Works on Windows, Linux, macOS, and Docker containers
+
+#### Server Font Installation
+For optimal performance on production servers, install system fonts:
+
+**Ubuntu/Debian:**
+```bash
+sudo apt-get update
+sudo apt-get install -y fonts-dejavu-core fonts-liberation fonts-noto-core
+```
+
+**CentOS/RHEL:**
+```bash
+sudo yum install -y dejavu-sans-fonts liberation-fonts google-noto-sans-fonts
+```
+
+**Docker:**
+```dockerfile
+RUN apt-get update && apt-get install -y \
+    fonts-dejavu-core \
+    fonts-liberation \
+    fonts-noto-core \
+    && rm -rf /var/lib/apt/lists/*
+```
+
+#### Font Troubleshooting
+- **Text appears as boxes**: Install system fonts using commands above
+- **Missing text in timeline**: Check server logs for font loading errors
+- **Blurry text**: Ensure TrueType fonts are installed, not bitmap fonts
+
+See `DEPLOYMENT.md` for detailed server setup instructions.
+
 ### Common Issues
 
 1. **CSV Upload Errors**:
@@ -266,13 +315,11 @@ Use the included `sample_timeline.csv` file to test the CSV import feature:
    - Check for special characters in event descriptions
    - Verify color codes are valid hex values
 
-2. **Font Warnings**: The application falls back to default fonts if system fonts aren't available
+2. **Port Conflicts**: Change the port in `app.py` from 5000 to another number
 
-3. **Port Conflicts**: Change the port in `app.py` from 5000 to another number
+3. **File Size Limits**: CSV files are limited to 16MB maximum
 
-4. **File Size Limits**: CSV files are limited to 16MB maximum
-
-5. **Date Validation**: End dates must be after start dates for duration events
+4. **Date Validation**: End dates must be after start dates for duration events
 
 ### Development Mode
 
